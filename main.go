@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"unicode/utf8"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -27,22 +28,45 @@ type XlsxDatas struct {
 }
 
 func main() {
-	// Открываем существующий файл Excel.
-	filePath := "C:/Users/kirig/wildberries/experiments/xlsx_example/Book1.xlsx"
-	f, err := excelize.OpenFile(filePath)
-	if err != nil {
-		log.Fatalf("Ошибка при открытии файла: %v", err)
-	}
+	// Создаем новый файл Excel
+	f := excelize.NewFile()
 
-	// Проверяем, был ли файл успешно открыт.
-	if f == nil {
-		log.Fatal("Файл не удалось открыть")
-	}
+	// Заполняем первую строку колонкой A
+	f.SetCellValue("Sheet1", "A2", `ООО "Вайлдберриз Банк"`)
+	f.SetCellValue("Sheet1", "A3", `Номер счета и наименование клиента: 40702810700000000321 Общество с ограниченной ответственностью "ВБ Восток"`)
+	f.SetCellValue("Sheet1", "A4", `Период выгрузки с:  01-01-2024 - 30-03-2024`)
+	f.SetCellValue("Sheet1", "A6", `Входящий остаток (в валюте счета): `)
 
+	// Добавляем данные в таблицу начиная с 7 строки
 	datas := getMockData()
 
+	startRow := 7
+
+	// Добавляем заголовки таблицы
+	for col, header := range map[string]string{
+		"A": "Дата",
+		"B": "Номер документа",
+		"C": "БИК Банка плательщика",
+		"D": "Банк плательщика",
+		"E": "Наименование плательщика",
+		"F": "ИНН плательщика",
+		"G": "№ счета плательщика",
+		"H": "БИК банка получателя",
+		"I": "Банк получателя",
+		"J": "Наименование получателя",
+		"K": "ИНН получателя",
+		"L": "№ счета получателя",
+		"M": "Сумма операции по дебету счета",
+		"N": "Сумма операции по кредиту счета",
+		"O": "Сальдо после операции",
+		"P": "Назначение платежа",
+	} {
+		f.SetCellValue("Sheet1", fmt.Sprintf("%s%d", col, startRow), header)
+
+	}
+
+	// Добавляем данные в таблицу
 	for ind, data := range datas {
-		// Устанавливаем новые значения для определенных ячеек.
 		f.SetCellValue("Sheet1", fmt.Sprintf("A%d", 8+ind), data.Date)
 		f.SetCellValue("Sheet1", fmt.Sprintf("B%d", 8+ind), data.DocNum)
 		f.SetCellValue("Sheet1", fmt.Sprintf("C%d", 8+ind), data.BIKPayer)
@@ -59,14 +83,65 @@ func main() {
 		f.SetCellValue("Sheet1", fmt.Sprintf("N%d", 8+ind), data.KreditSum)
 		f.SetCellValue("Sheet1", fmt.Sprintf("O%d", 8+ind), data.SaldoAfterOper)
 		f.SetCellValue("Sheet1", fmt.Sprintf("P%d", 8+ind), data.PaymentName)
+
+	}
+	setBorder(f, len(datas))
+	// Сохраняем файл
+	if err := f.SaveAs("Book0.xlsx"); err != nil {
+		log.Fatalf("Ошибка при сохранении файла: %v", err)
+	}
+	err := getMaxColWidth(f, len(datas))
+	if err != nil {
+		log.Fatalf("Ошибка при настройке ШИРИНЕ файла: %v", err)
+	}
+	// Сохраняем файл
+	if err := f.SaveAs("Book0.xlsx"); err != nil {
+		log.Fatalf("Ошибка при сохранении файла: %v", err)
+	}
+}
+
+func setBorder(f *excelize.File, lastIndex int) {
+	// Создаем первый стиль для диапазона A7:P7
+	style1, err := f.NewStyle(&excelize.Style{
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+		},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
-	// Сохраняем изменения в файле.
-	if err = f.Save(); err != nil {
-		log.Fatalf("О��ибка при сохранении файла: %v", err)
+	// Создаем второй стиль для диапазона A8:P16
+	style2, err := f.NewStyle(&excelize.Style{
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+		},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
-	fmt.Println("Значения успешно обновлены в файле Excel.")
+	// Создаем третий стиль для диапазона A17:P17
+	style3, err := f.NewStyle(&excelize.Style{
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	f.SetCellStyle("Sheet1", "A7", fmt.Sprintf("O%d", 7+lastIndex-1), style1)
+	f.SetCellStyle("Sheet1", fmt.Sprintf("P%d", 7), fmt.Sprintf("P%d", 7+lastIndex-1), style2)
+	f.SetCellStyle("Sheet1", fmt.Sprintf("A%d", 7+lastIndex), fmt.Sprintf("P%d", 7+lastIndex), style3)
 }
 
 func getMockData() []XlsxDatas {
@@ -92,4 +167,26 @@ func getMockData() []XlsxDatas {
 	}
 
 	return res
+}
+
+func getMaxColWidth(f *excelize.File, endRow int) error {
+	for col := 'A'; col <= 'P'; col++ {
+		maxWidth := 0
+		for ind := 7; ind <= 7+endRow; ind++ {
+			val, err := f.GetCellValue("Sheet1", fmt.Sprintf("%c%d", col, ind))
+			if err != nil {
+				return err
+			}
+			if len(val) > maxWidth {
+				maxWidth = utf8.RuneCountInString(val)
+			}
+
+		}
+		err := f.SetColWidth("Sheet1", string(col), string(col), float64(maxWidth))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
