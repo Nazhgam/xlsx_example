@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/xuri/excelize/v2"
@@ -41,10 +42,10 @@ func main() {
 	datas := getMockData()
 
 	startRow := 7
-
+	var widthMax = make(map[string]int)
 	// Добавляем заголовки таблицы
 	for col, header := range map[string]string{
-		"A": "Дата",
+		"A": " Дата  ",
 		"B": "Номер документа",
 		"C": "БИК Банка плательщика",
 		"D": "Банк плательщика",
@@ -61,28 +62,100 @@ func main() {
 		"O": "Сальдо после операции",
 		"P": "Назначение платежа",
 	} {
+		widthMax[col] = utf8.RuneCountInString(header) + 10
 		f.SetCellValue("Sheet1", fmt.Sprintf("%s%d", col, startRow), header)
+		f.SetColWidth("Sheet1", col, col, float64(widthMax[col]))
 
 	}
-
 	// Добавляем данные в таблицу
 	for ind, data := range datas {
-		f.SetCellValue("Sheet1", fmt.Sprintf("A%d", 8+ind), data.Date)
-		f.SetCellValue("Sheet1", fmt.Sprintf("B%d", 8+ind), data.DocNum)
-		f.SetCellValue("Sheet1", fmt.Sprintf("C%d", 8+ind), data.BIKPayer)
-		f.SetCellValue("Sheet1", fmt.Sprintf("D%d", 8+ind), data.PayerBank)
-		f.SetCellValue("Sheet1", fmt.Sprintf("E%d", 8+ind), data.PayerName)
-		f.SetCellValue("Sheet1", fmt.Sprintf("F%d", 8+ind), data.INNPayer)
-		f.SetCellValue("Sheet1", fmt.Sprintf("G%d", 8+ind), data.PayerNumAkk)
-		f.SetCellValue("Sheet1", fmt.Sprintf("H%d", 8+ind), data.ReceiverBIK)
-		f.SetCellValue("Sheet1", fmt.Sprintf("I%d", 8+ind), data.ReceiverBank)
-		f.SetCellValue("Sheet1", fmt.Sprintf("J%d", 8+ind), data.ReceiverName)
-		f.SetCellValue("Sheet1", fmt.Sprintf("K%d", 8+ind), data.ReveiverINN)
-		f.SetCellValue("Sheet1", fmt.Sprintf("L%d", 8+ind), data.ReceiverAkkNum)
+		maxHeight := 1
+
+		date, height := formatTextToTable(data.Date, widthMax["A"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("A%d", 8+ind), date)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		docnum, height := formatTextToTable(data.DocNum, widthMax["B"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("B%d", 8+ind), docnum)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		bIKPayer, height := formatTextToTable(data.BIKPayer, widthMax["C"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("C%d", 8+ind), bIKPayer)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		bankPayer, height := formatTextToTable(data.PayerBank, widthMax["D"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("D%d", 8+ind), bankPayer)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		payerName, height := formatTextToTable(data.PayerName, widthMax["E"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("E%d", 8+ind), payerName)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		innPayer, height := formatTextToTable(data.INNPayer, widthMax["F"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("F%d", 8+ind), innPayer)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		payerNumAkk, height := formatTextToTable(data.PayerNumAkk, widthMax["G"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("G%d", 8+ind), payerNumAkk)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		receiverBIK, height := formatTextToTable(data.ReceiverBIK, widthMax["H"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("H%d", 8+ind), receiverBIK)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		receiverBank, height := formatTextToTable(data.ReceiverBank, widthMax["I"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("I%d", 8+ind), receiverBank)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		receiverName, height := formatTextToTable(data.ReceiverName, widthMax["J"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("J%d", 8+ind), receiverName)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		reveiverINN, height := formatTextToTable(data.ReveiverINN, widthMax["K"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("K%d", 8+ind), reveiverINN)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		receiverAkkNum, height := formatTextToTable(data.ReceiverAkkNum, widthMax["L"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("L%d", 8+ind), receiverAkkNum)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
 		f.SetCellValue("Sheet1", fmt.Sprintf("M%d", 8+ind), data.DebuteSum)
+
 		f.SetCellValue("Sheet1", fmt.Sprintf("N%d", 8+ind), data.KreditSum)
+
 		f.SetCellValue("Sheet1", fmt.Sprintf("O%d", 8+ind), data.SaldoAfterOper)
-		f.SetCellValue("Sheet1", fmt.Sprintf("P%d", 8+ind), data.PaymentName)
+
+		paymentName, height := formatTextToTable(data.PaymentName, widthMax["L"])
+		f.SetCellValue("Sheet1", fmt.Sprintf("P%d", 8+ind), paymentName)
+		if height > maxHeight {
+			maxHeight = height
+		}
+
+		f.SetRowHeight("Sheet1", 8+ind, float64(maxHeight*20))
 
 	}
 	setBorder(f, len(datas))
@@ -90,14 +163,75 @@ func main() {
 	if err := f.SaveAs("Book0.xlsx"); err != nil {
 		log.Fatalf("Ошибка при сохранении файла: %v", err)
 	}
-	err := getMaxColWidth(f, len(datas))
-	if err != nil {
-		log.Fatalf("Ошибка при настройке ШИРИНЕ файла: %v", err)
+
+}
+
+// utf8.RuneCountInString(s) <= maxWidth &&
+func formatTextToTable(txt string, maxWidth int) (string, int) {
+	var vowels = map[rune]bool{
+		'А': true,
+		'а': true,
+		'И': true,
+		'и': true,
+		'Е': true,
+		'е': true,
+		'О': true,
+		'о': true,
+		'Э': true,
+		'э': true,
+		'У': true,
+		'у': true,
+		'Ю': true,
+		'ю': true,
+		'Я': true,
+		'я': true,
+		'Ы': true,
+		'ы': true,
 	}
-	// Сохраняем файл
-	if err := f.SaveAs("Book0.xlsx"); err != nil {
-		log.Fatalf("Ошибка при сохранении файла: %v", err)
+
+	maxHeight, curLen := 1, 0
+
+	if maxWidth >= utf8.RuneCountInString(txt) {
+		return txt, maxHeight
 	}
+
+	var res strings.Builder
+
+	for _, s := range strings.Split(txt, " ") {
+		if curLen == maxWidth {
+			res.WriteString("\n")
+			curLen = 0
+		}
+		strLen := utf8.RuneCountInString(s)
+		fmt.Println(s, strLen, curLen, maxWidth, res.String())
+		switch {
+		case strLen+curLen < maxWidth:
+			res.WriteString(s + " ")
+			curLen += strLen + 1
+
+		case strLen+curLen == maxWidth:
+			res.WriteString("\n" + s + " ")
+			curLen = strLen + 1
+
+		case strLen+curLen > maxWidth:
+
+			if !vowels[[]rune(s)[maxWidth-curLen]] {
+				res.WriteString(string([]rune(s)[:maxWidth-curLen]) + "-\n" + string([]rune(s)[maxWidth-curLen:]) + " ")
+				maxHeight++
+				curLen = 0
+			} else {
+				for i := maxWidth - curLen; i > 0; i-- {
+					if !vowels[[]rune(s)[i]] {
+						res.WriteString(string([]rune(s)[:(i)]) + "-\n" + string([]rune(s)[(i):]) + " ")
+						maxHeight++
+					}
+				}
+				curLen = 0
+			}
+		}
+	}
+	fmt.Println(res.String(), maxHeight)
+	return res.String(), maxHeight
 }
 
 func setBorder(f *excelize.File, lastIndex int) {
@@ -106,6 +240,10 @@ func setBorder(f *excelize.File, lastIndex int) {
 		Border: []excelize.Border{
 			{Type: "left", Color: "000000", Style: 1},
 			{Type: "top", Color: "000000", Style: 1},
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center", // Выравнивание по горизонтали
+			Vertical:   "center", // Выравнивание по вертикали
 		},
 	})
 	if err != nil {
@@ -120,6 +258,10 @@ func setBorder(f *excelize.File, lastIndex int) {
 			{Type: "top", Color: "000000", Style: 1},
 			{Type: "right", Color: "000000", Style: 1},
 		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center", // Выравнивание по горизонтали
+			Vertical:   "center", // Выравнивание по вертикали
+		},
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -133,6 +275,10 @@ func setBorder(f *excelize.File, lastIndex int) {
 			{Type: "top", Color: "000000", Style: 1},
 			{Type: "right", Color: "000000", Style: 1},
 			{Type: "bottom", Color: "000000", Style: 1},
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center", // Выравнивание по горизонтали
+			Vertical:   "center", // Выравнивание по вертикали
 		},
 	})
 	if err != nil {
@@ -163,7 +309,7 @@ func getMockData() []XlsxDatas {
 		res[ind].DebuteSum = 10.5 + float64(ind)
 		res[ind].KreditSum = 10.5 + float64(ind)
 		res[ind].SaldoAfterOper = 10.5 + float64(ind)
-		res[ind].PaymentName = fmt.Sprintf("payment name: %d", ind)
+		res[ind].PaymentName = fmt.Sprintf("Списание по переводам в пользу физических лиц - резидентов через СБП (B2C) за 01.01.2024 г. Выплата заработной платы НДС не облагается.: %d", ind)
 	}
 
 	return res
